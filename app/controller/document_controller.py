@@ -5,6 +5,8 @@ from core.config import settings
 from service.doc_parser import extract_text
 from schemas.document import Document
 from core.db import documents_collection
+from pymongo.errors import OperationFailure
+
 
 async def upload_document(user_id:str, file : UploadFile = File(...)):
     """
@@ -79,7 +81,16 @@ async def get_documents():
 
 
 async def find_particular_document(doc_slug: str) -> Document | None:
-    doc = documents_collection.find_one({"slug" : doc_slug})
-    if not doc:
-        return None
-    return Document.from_mongo(doc)
+    try:
+        doc = documents_collection.find_one(
+            {"slug": doc_slug},
+        )
+        if not doc:
+            return None
+        return Document.from_mongo(doc)
+    except OperationFailure  as err:
+        
+        raise HTTPException(
+            status_code=500,
+            detail= err.details
+        ) from err

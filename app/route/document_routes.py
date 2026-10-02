@@ -27,7 +27,7 @@ async def get_documents():
         "data": docs,
     }
 
-@router.get("/{doc_slug}", response_model=APIResponse[List[Document]])
+@router.get("/{doc_slug}", response_model=APIResponse[Document])
 async def get_particular_docs(doc_slug: str):
     doc =  await document_controller.find_particular_document(doc_slug)
     return {
