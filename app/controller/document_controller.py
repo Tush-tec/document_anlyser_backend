@@ -10,10 +10,9 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
     """
     upload a PDF or TXT% contract for analysis
     """
-    
-    print("===== file v======= 14", file)
-    
+        
     ext = os.path.splitext(file.filename)[1].lower()
+    base_name = os.path.splitext(file.filename)[0]
      
     if ext not in settings.ALLOWED_EXTENSION:
         raise  HTTPException(
@@ -28,7 +27,7 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
         raise HTTPException(
             status_code=400,
             detail="File size is too large upload. we accept file only 10mb"
-        )
+        )   
 
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     unique_name = f"{uuid.uuid4().hex}{ext}"
@@ -40,7 +39,6 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
         
         
     parse = extract_text(file_path)
-    print("PARSER RETURNED:", parse)
     
     if isinstance(parse, dict):
         text       = parse.get("text", "")
@@ -55,6 +53,7 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
         filename=unique_name,
         user_id = user_id,
         original_name=file.filename,
+        title =  base_name,
         text_content=text,
         page_count=page_count,
         word_count=word_count,
@@ -77,4 +76,10 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
 async def get_documents():
     cursor = documents_collection.find({}).sort([("created_at", -1)])
     return [Document.from_mongo(doc).model_dump() for doc in cursor]
-    
+
+
+async def find_particular_document(doc_slug: str) -> Document | None:
+    doc = documents_collection.find_one({"slug" : doc_slug})
+    if not doc:
+        return None
+    return Document.from_mongo(doc)

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from slugify import slugify
 
 
 class Document(BaseModel):
@@ -8,9 +9,10 @@ class Document(BaseModel):
 
     id: Optional[str] = None           
     user_id: Optional[str] = None      
-    filename: str                      
+    filename: str          
+    title: str | None =None       
     original_name: str                 
-    text_content: str                  
+    text_content: str
     mime_type: Optional[str] = None
     size_bytes: Optional[int] = None
     storage_key: Optional[str] = None
@@ -21,6 +23,7 @@ class Document(BaseModel):
     sha256: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     ready_at: Optional[datetime] = None
+    slug : Optional[str] | None = None
 
     @classmethod
     def from_mongo(cls, doc: dict) -> "Document":
@@ -28,3 +31,11 @@ class Document(BaseModel):
         if "_id" in doc:
             doc["id"] = str(doc.pop("_id"))
         return cls(**doc)
+    
+    
+    
+    @model_validator(mode="after")
+    def generate_slug(self) -> "Document":
+        if not self.slug and self.title:
+            self.slug = slugify(self.title, algorithm="modern")
+        return self
