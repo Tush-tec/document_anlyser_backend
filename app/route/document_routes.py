@@ -26,3 +26,12 @@ async def get_documents():
         "message": "Documents fetched successfully",
         "data": docs,
     }
+
+@router.get("/{doc_slug}", response_model=APIResponse[Document])
+async def get_particular_docs(doc_slug: str):
+    doc =  await document_controller.find_particular_document(doc_slug)
+    return {
+        "status_code": 200,
+        "message":"Document fetched successfully",
+        "data" :doc
+    }
