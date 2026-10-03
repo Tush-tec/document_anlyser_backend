@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     
     MAX_FILE_MB:int = 10 * 1024 * 1024
+    MAX_PAGES: int = 2000
+    PAGE_INSERT_BATCH = 500                         # pages per Mongo insert_many
+    EMBED_BATCH = 64       
 
     # Uploads
     UPLOAD_DIR: str = "uploads"

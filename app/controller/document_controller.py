@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import UploadFile, File, HTTPException, BackgroundTasks
 import os
 import uuid
 from core.config import settings
@@ -6,9 +6,10 @@ from service.doc_parser import extract_text
 from schemas.document import Document
 from core.db import documents_collection
 from pymongo.errors import OperationFailure
+import hashlib
+from service import ingest
 
-
-async def upload_document(user_id:str, file : UploadFile = File(...)):
+async def upload_document(db, user_id:str, background_tasks: BackgroundTasks,  file : UploadFile = File(...), ):
     """
     upload a PDF or TXT% contract for analysis
     """
@@ -56,11 +57,11 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
         user_id = user_id,
         original_name=file.filename,
         title =  base_name,
-        text_content=text,
         page_count=page_count,
         word_count=word_count,
         size_bytes=len(content),
-        # sha256=hashlib.sha256(content).hexdigest(),
+        status = "queued",
+        sha256=hashlib.sha256(content).hexdigest(),
     )
 
     
@@ -68,6 +69,12 @@ async def upload_document(user_id:str, file : UploadFile = File(...)):
     result = documents_collection.insert_one(doc)
     doc.pop("_id", None)
     contract_data.id = str(result.inserted_id)
+    doc_id =  str(result.inserted_id)
+    
+    # Run the Heavy Work after the response is sent
+    background_tasks.add_task(ingest.ingest_documents, db, doc_id, str(file_path))
+    
+    
     return {
         "message": "File uploaded and processed successfully",
         "contract": contract_data.model_dump(),   # cleaner: dump from the model, not the raw doc
@@ -79,6 +86,14 @@ async def get_documents():
     cursor = documents_collection.find({}).sort([("created_at", -1)])
     return [Document.from_mongo(doc).model_dump() for doc in cursor]
 
+
+async def find_user_docs(user: dict) -> list[Document]:
+    try:
+        user_id = user["id"]
+        docs = documents_collection.find({"user_id": user_id}).sort([("created_at", -1)])
+        return [Document.from_mongo(doc) for doc in docs]
+    except OperationFailure as err:
+        raise HTTPException(status_code=500, detail=err.details) from err
 
 async def find_particular_document(doc_slug: str) -> Document | None:
     try:
@@ -94,3 +109,5 @@ async def find_particular_document(doc_slug: str) -> Document | None:
             status_code=500,
             detail= err.details
         ) from err
+        
+        

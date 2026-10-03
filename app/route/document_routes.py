@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from controller import document_controller
 from schemas.document import  Document
 from typing import List
@@ -26,12 +26,25 @@ async def get_documents():
         "message": "Documents fetched successfully",
         "data": docs,
     }
+    
+@router.get("/user-docs", response_model=APIResponse[List[Document]])
+async def user_docs(user: dict =  Depends(auth_middleware)):
+    doc = await document_controller.find_user_docs(user)
+    
+    return {
+        "status_code": 200,
+        "message": "Document fetched successfully",
+        "data": doc,   
+    }
 
 @router.get("/{doc_slug}", response_model=APIResponse[Document])
 async def get_particular_docs(doc_slug: str):
-    doc =  await document_controller.find_particular_document(doc_slug)
+    doc = await document_controller.find_particular_document(doc_slug)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
     return {
         "status_code": 200,
-        "message":"Document fetched successfully",
-        "data" :doc
+        "message": "Document fetched successfully",
+        "data": doc,
     }
+    

@@ -12,7 +12,6 @@ class Document(BaseModel):
     filename: str          
     title: str | None =None       
     original_name: str                 
-    text_content: str
     mime_type: Optional[str] = None
     size_bytes: Optional[int] = None
     storage_key: Optional[str] = None
