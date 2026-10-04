@@ -16,6 +16,11 @@ async def lifespan(app: FastAPI):
     init_db()                                   # sync function: no `await`
     vector_store.ensure_collection_sync()       # creates the Qdrant collection + indexes
     stuck = ingest.recover_stuck_documents()    # fail documents orphaned by a restart
+    
+    from service import embedder
+    embedder._model()   # or expose a warmup() function
+    logging.info("Embedding model loaded")
+
     print(f"Startup complete. Recovered {stuck} stuck document(s).")
     yield
     print("Shutting down the app")

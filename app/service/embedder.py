@@ -12,7 +12,7 @@ def _model() -> SentenceTransformer:
 
 def vector_size() -> int:
     """Qdrant collection size must equal this number."""
-    return _model().get_embedding_dimension()
+    return _model().get_sentence_embedding_dimension()
 
 
 def embed_batch(texts: list[str]) -> list[list[float]]:

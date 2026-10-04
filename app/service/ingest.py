@@ -54,6 +54,8 @@ def ingest_document(doc_id: str, user_id: str, file_path: str) -> None:
         try:
             _set(doc_id, status="failed", stage="failed", error=str(exc)[:500])
         except Exception:
+            import traceback
+            traceback.print_exc()          
             log.exception("Could not record failure for document %s", doc_id)
         _clear_derived_data(doc_id)                      # rollback pages + vectors
 
