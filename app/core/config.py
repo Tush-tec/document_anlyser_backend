@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     
     MAX_FILE_MB:int = 10 * 1024 * 1024
     MAX_PAGES: int = 2000
-    PAGE_INSERT_BATCH = 500                         # pages per Mongo insert_many
+    PAGE_INSERT_BATCH: int = 500                         # pages per Mongo insert_many
     EMBED_BATCH = 64       
 
     # Uploads
@@ -49,5 +49,9 @@ class Settings(BaseSettings):
     EMBED_BATCH: int = 100
     CHUNK_TOKENS: int = 512
     CHUNK_OVERLAP: int = 64
+    
+    QDRANT_COLLECTION:str 
+    QDRANT_URL:str
+    QDRANT_API_KEY : str
 
 settings = Settings()

@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class Page(BaseModel):
-    id : str
+    id : Optional[str] = None
     doc_id : str
     user_id :str
     page_number : int

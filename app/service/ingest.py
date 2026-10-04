@@ -2,7 +2,7 @@ import asyncio
 import os 
 from datetime import datetime
 from bson import ObjectId
-
+from fastapi import FastAPI, HTTPException
 
 from schemas.page import Page
 from service import chunker, embedder, parser, vector_store
@@ -10,34 +10,41 @@ from core.db import page_collection, documents_collection
 from core.config import settings
 
 async def _set(db, doc_id: str, **fields) -> None:
-    await page_collection.update_one(({"_id": ObjectId(doc_id)}, {"$set": fields}))
+    db.update_one(
+        {"_id": ObjectId(doc_id)},
+        {"$set": fields}
+    )
     
 
 async def _extract_to_mongo(db, doc_id, user_id, file_path) -> tuple[int, int]:
     pages = await asyncio.to_thread(parser.extract_pages, file_path) # blocking -> thread
     
-    if len(pages) > settings.MAX_PAGES:
-        raise ValueError(f"PDF has {len(pages)} pages; the limit is {settings.MAX_PAGES}.")
-    
-    batch, total_words = [], 0
-    for page_number, text in pages:
-        page = Page(doc_id=doc_id, user_id=user_id, page_number=page_number,
-                    text=text, word_count=len(text.split()))
-        total_words += page.word_count
-        batch.append(page.model_dump(exclude={"id"}))
-
-        if len(batch) >= settings.PAGE_INSERT_BATCH:
-            await page_collection.insert_many(batch)
-            batch = []
-    if batch:
-        await page_collection.insert_many(batch)
+    try:
+        if len(pages) > settings.MAX_PAGES:
+                raise ValueError(f"PDF has {len(pages)} pages; the limit is {settings.MAX_PAGES}.")
+            
+        batch, total_words = [], 0
+        for page_number, text in pages:
+                page = Page(doc_id=doc_id, user_id=user_id, page_number=page_number,
+                            text=text, word_count=len(text.split()))
+                total_words += page.word_count
+                batch.append(page.model_dump(exclude={"id"}))
+        
+                if len(batch) >= settings.PAGE_INSERT_BATCH:
+                    await page_collection.insert_many(batch)
+                    batch = []
+        if batch:
+                await page_collection.insert_many(batch)
+                
+    except Exception as exc:
+        await _set(db, doc_id, status="failed", error=str(exc))
         
         
 async def _chunk_and_embed(db, doc_id, user_id) -> int:
     batch, chunk_index = [], 0
 
     # stream pages from Mongo in order; never load the whole document at once
-    cursor = db.pages.find({"doc_id": doc_id}).sort("page_number", 1)
+    cursor = db.find({"doc_id": doc_id}).sort("page_number", 1)
     async for page in cursor:
         for piece in chunker.chunk_page(page["text"], page["page_number"]):
             batch.append({
@@ -69,17 +76,23 @@ async def ingest_documents(db, doc_id:str, file_path: str) -> None:
     
     try:
         # Find  document
-        doc =  documents_collection.find_one({"_id" : ObjectId(doc_id)})
+        doc =  db.find_one({"_id" : ObjectId(doc_id)})
+        print(f"[INGEST] find_one returned {type(doc)}", flush=True)
+        
         user_id = doc.user_id
         
         await _set(db, doc_id, status="processing") 
+        print("[INGEST] status=processing", flush=True)
+
         
         # safe to re-run: clear anything left from an earlier attempt
-        await page_collection({"doc_id": doc_id})
+        await page_collection.delete_many({"doc_id": doc_id})
+        print("[INGEST] cleared old pages", flush=True)
         await vector_store.delete_by_doc(doc_id)
         
         # ---- stage 1: PDF -> `pages` collection --------------------------------
         page_count, word_count =  await _extract_to_mongo(db, doc_id, user_id)
+        print(f"[INGEST] extracted pages={page_count} words={word_count}", flush=True)
         if word_count == 0:
             raise ValueError("No text found in this PDF. Scanned PDFs need OCR.")
         await _set(db, doc_id, page_count=page_count, word_count=word_count)
@@ -94,4 +107,7 @@ async def ingest_documents(db, doc_id:str, file_path: str) -> None:
         try:  # best-effort cleanup of half-written data
             await vector_store.delete_by_doc(doc_id)
         except Exception:
-            pass
+            raise HTTPException(
+                status_code=500,
+                detail=exc
+            )

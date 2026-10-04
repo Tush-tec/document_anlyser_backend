@@ -1,18 +1,19 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, BackgroundTasks
 from controller import document_controller
 from schemas.document import  Document
 from typing import List
 from schemas.response import APIResponse
 from service.dependencies import auth_middleware
+from core.db  import documents_collection
 
 router = APIRouter(prefix="/documents", tags=["document"])
 
 @router.post("/upload")
-async def upload_document(
+def upload_document(
     file: UploadFile = File(...),
     user: dict = Depends(auth_middleware),
 ):
-    return await document_controller.upload_document(
+    return  document_controller.upload_document(
         user_id=user["id"],    
         file=file,
     )

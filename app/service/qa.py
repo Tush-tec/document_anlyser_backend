@@ -2,9 +2,9 @@ import json, time
 from pathlib import Path
 from tenacity import retry, stop_after_attempt, wait_exponential_jitter
 import google.generativeai as genai
-from app.core.config import settings
+from core.config import settings
 from app.schemas.query import Citation
-from app.services.gemini_client import chat_model
+from services.gemini_client import chat_model
 
 SYSTEM = Path("app/prompts/system_qa.txt").read_text()
 

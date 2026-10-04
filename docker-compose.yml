@@ -1,7 +1,7 @@
 services:
   mongodb:
     image: mongo:latest
-    container_name: vakeel_vision
+    container_name: doc_analyser
     ports:
       - "27017:27017"
     environment:
@@ -11,5 +11,21 @@ services:
       - mongodb_data:/data/db
     restart: always
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    # environment:
+    #   - QDRANT__SERVICE__API_KEY=value
+    #   - QDRANT__LOG_LEVEL=INFO
+    volumes:
+      - qdrant_storage:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+
+
 volumes:
   mongodb_data:
+  qdrant_storage:
+  qdrant_snapshots:

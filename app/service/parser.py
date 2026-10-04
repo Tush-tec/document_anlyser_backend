@@ -1,6 +1,6 @@
 import io
 from dataclasses import dataclass
-from pypdf import PdfReader
+from PyPDF2 import PdfReader
 import docx
 
 @dataclass
