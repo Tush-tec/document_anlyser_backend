@@ -2,18 +2,17 @@ import os
 from functools import lru_cache
 
 from sentence_transformers import SentenceTransformer  
-
-MODEL_NAME = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")   
+from core.config import settings
 
 
 @lru_cache(maxsize=1)
 def _model() -> SentenceTransformer:
-    return SentenceTransformer(MODEL_NAME)
+    return SentenceTransformer(settings.EMBED_MODEL_NAME)
 
 
 def vector_size() -> int:
     """Qdrant collection size must equal this number."""
-    return _model().get_sentence_embedding_dimension()
+    return _model().get_embedding_dimension()
 
 
 def embed_batch(texts: list[str]) -> list[list[float]]:

@@ -9,13 +9,16 @@ from core.db  import documents_collection
 router = APIRouter(prefix="/documents", tags=["document"])
 
 @router.post("/upload")
-def upload_document(
+def upload(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     user: dict = Depends(auth_middleware),
 ):
     return  document_controller.upload_document(
+        background_tasks,
         user_id=user["id"],    
         file=file,
+        
     )
 
 

@@ -25,8 +25,11 @@ class Settings(BaseSettings):
 
     # Gemini
     GEMINI_API_KEY: str
-    GEMINI_EMBED_MODEL: str = "models/text-embedding-004"
+    GEMINI_EMBED_MODEL: str = "gemini-embedding-001"
     GEMINI_CHAT_MODEL: str = "gemini-2.5-flash"
+    GEMINI_BATCH_SIZE:int= 1000
+    
+    
 
     # Qdrant
     QDRANT_URL: str = "http://localhost:6333"
@@ -35,20 +38,23 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     
-    MAX_FILE_MB:int = 10 * 1024 * 1024
+    MAX_FILE_MB:int = 20 * 1024 * 1024
     MAX_PAGES: int = 2000
     PAGE_INSERT_BATCH: int = 500                         # pages per Mongo insert_many
-    EMBED_BATCH = 64       
+    EMBED_BATCH:int = 64   
+    EMBED_MODEL_NAME: str="all-MiniLM-L6-v2"    
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
     ALLOWED_EXTENSION: list[str] = [".pdf", ".txt"]
-    MAX_UPLOAD_MB: int = 10
+    MAX_UPLOAD_MB: int = 20
 
     # RAG
     EMBED_BATCH: int = 100
     CHUNK_TOKENS: int = 512
-    CHUNK_OVERLAP: int = 64
+    # Chunking (words, not tokens)
+    CHUNK_WORDS: int = 300
+    CHUNK_OVERLAP_WORDS: int = 50
     
     QDRANT_COLLECTION:str 
     QDRANT_URL:str
